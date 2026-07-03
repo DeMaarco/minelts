@@ -1,9 +1,10 @@
-use crate::config::{self, Config};
+use crate::config::{self, validate_ram_range, Config};
 use crate::download::{DownloadProgress, ParallelDownloader};
 use crate::installed;
-use crate::launch::{prepare_and_launch, LaunchOptions};
+use crate::launch::{parse_jvm_args, prepare_and_launch, prepare_version, LaunchOptions};
 use crate::mojang::{fetch_version_json, fetch_version_manifest, VersionEntry};
 use serde::Serialize;
+use std::fs;
 use std::sync::mpsc;
 use std::thread;
 use tauri::{AppHandle, Emitter};
@@ -16,10 +17,15 @@ pub struct ProgressEvent {
 }
 
 #[derive(Serialize, Clone)]
-pub struct LaunchDoneEvent {
+pub struct DoneEvent {
     pub ok: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct SystemRamInfo {
+    pub total_mb: u32,
 }
 
 #[derive(Serialize)]
@@ -60,6 +66,7 @@ pub fn get_config() -> Config {
 
 #[tauri::command]
 pub fn save_config(cfg: Config) -> Result<(), String> {
+    cfg.validate_ram()?;
     config::save(&cfg).map_err(|e| e.to_string())
 }
 
@@ -85,31 +92,34 @@ pub fn get_minecraft_dir() -> String {
 }
 
 #[tauri::command]
+pub fn get_system_ram_mb() -> SystemRamInfo {
+    const MIN_MB: u32 = 512;
+    const MAX_MB: u32 = 16384;
+
+    let mut system = sysinfo::System::new();
+    system.refresh_memory();
+    let total_mb = (system.total_memory() / 1024 / 1024) as u32;
+    let total_mb = total_mb.clamp(MIN_MB, MAX_MB);
+
+    SystemRamInfo { total_mb }
+}
+
+#[tauri::command]
 pub fn open_folder(which: String) -> Result<(), String> {
     let path = match which.as_str() {
         "root" => config::minecraft_dir(),
         "versions" => config::minecraft_dir().join("versions"),
+        "logs" => config::minecraft_dir().join("logs"),
+        "crashes" => config::minecraft_dir().join("crash-reports"),
         _ => return Err(format!("Carpeta desconocida: {which}")),
     };
+    fs::create_dir_all(&path).map_err(|e| e.to_string())?;
     installed::open_folder(&path);
     Ok(())
 }
 
 #[tauri::command]
-pub fn launch_game(
-    app: AppHandle,
-    username: String,
-    version_id: String,
-    url: String,
-    ram_mb: u32,
-) -> Result<(), String> {
-    let username = username.trim().to_string();
-    if username.is_empty() {
-        return Err("Introduce un nombre de usuario".into());
-    }
-    if username.len() > 16 {
-        return Err("El nombre no puede superar 16 caracteres".into());
-    }
+pub fn install_version(app: AppHandle, version_id: String, url: String) -> Result<(), String> {
     if version_id.is_empty() {
         return Err("Selecciona una versión".into());
     }
@@ -127,20 +137,81 @@ pub fn launch_game(
         let result = (|| {
             let version = fetch_version_json(&url)?;
             let downloader = ParallelDownloader::new(8);
+            prepare_version(&version, &downloader, Some(dl_tx)).map(|_| ())
+        })();
+
+        let payload = match result {
+            Ok(()) => DoneEvent {
+                ok: true,
+                error: None,
+            },
+            Err(e) => DoneEvent {
+                ok: false,
+                error: Some(e),
+            },
+        };
+        let _ = app.emit("install-done", payload);
+    });
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn launch_game(
+    app: AppHandle,
+    username: String,
+    version_id: String,
+    url: String,
+    ram_min_mb: u32,
+    ram_max_mb: u32,
+    jvm_args: String,
+) -> Result<(), String> {
+    let username = username.trim().to_string();
+    if username.is_empty() {
+        return Err("Introduce un nombre de usuario".into());
+    }
+    if username.len() > 16 {
+        return Err("El nombre no puede superar 16 caracteres".into());
+    }
+    if version_id.is_empty() {
+        return Err("Selecciona una versión".into());
+    }
+    validate_ram_range(ram_min_mb, ram_max_mb)?;
+
+    let jvm_args_vec = parse_jvm_args(&jvm_args);
+
+    thread::spawn(move || {
+        let (dl_tx, dl_rx) = mpsc::channel();
+        let app_progress = app.clone();
+        thread::spawn(move || {
+            while let Ok(progress) = dl_rx.recv() {
+                let event = progress_to_event(progress);
+                let _ = app_progress.emit("download-progress", event);
+            }
+        });
+
+        let result = (|| {
+            let version = fetch_version_json(&url)?;
+            let downloader = ParallelDownloader::new(8);
             prepare_and_launch(
                 &version,
-                &LaunchOptions { username, ram_mb },
+                &LaunchOptions {
+                    username,
+                    ram_min_mb,
+                    ram_max_mb,
+                    jvm_args: jvm_args_vec,
+                },
                 &downloader,
                 Some(dl_tx),
             )
         })();
 
         let payload = match result {
-            Ok(()) => LaunchDoneEvent {
+            Ok(()) => DoneEvent {
                 ok: true,
                 error: None,
             },
-            Err(e) => LaunchDoneEvent {
+            Err(e) => DoneEvent {
                 ok: false,
                 error: Some(e),
             },

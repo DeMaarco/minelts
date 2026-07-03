@@ -17,7 +17,9 @@ fn main() {
             commands::get_versions,
             commands::get_installed,
             commands::get_minecraft_dir,
+            commands::get_system_ram_mb,
             commands::open_folder,
+            commands::install_version,
             commands::launch_game,
         ])
         .run(tauri::generate_context!())

@@ -8,21 +8,28 @@ use crate::mojang::{
 };
 use std::collections::HashMap;
 use std::fs::{self, File};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use zip::ZipArchive;
 
 pub struct LaunchOptions {
     pub username: String,
-    pub ram_mb: u32,
+    pub ram_min_mb: u32,
+    pub ram_max_mb: u32,
+    pub jvm_args: Vec<String>,
 }
 
-pub fn prepare_and_launch(
+pub struct PreparedVersion {
+    pub client_jar: PathBuf,
+    pub natives_dir: PathBuf,
+    pub java_exe: PathBuf,
+}
+
+pub fn prepare_version(
     version: &VersionJson,
-    options: &LaunchOptions,
     downloader: &ParallelDownloader,
     progress_tx: Option<std::sync::mpsc::Sender<DownloadProgress>>,
-) -> Result<(), String> {
+) -> Result<PreparedVersion, String> {
     let mc_dir = config::minecraft_dir();
     fs::create_dir_all(&mc_dir).map_err(|e| format!("No se pudo crear .minecraft: {e}"))?;
     fs::create_dir_all(mc_dir.join("versions")).map_err(|e| e.to_string())?;
@@ -84,9 +91,28 @@ pub fn prepare_and_launch(
     fs::create_dir_all(&natives_dir).map_err(|e| e.to_string())?;
     extract_natives(version, &mc_dir, &natives_dir)?;
 
-    let cmd = build_launch_command(version, &java_exe, &client_jar, &natives_dir, options)?;
-    spawn_game(cmd)?;
+    Ok(PreparedVersion {
+        client_jar,
+        natives_dir,
+        java_exe,
+    })
+}
 
+pub fn prepare_and_launch(
+    version: &VersionJson,
+    options: &LaunchOptions,
+    downloader: &ParallelDownloader,
+    progress_tx: Option<std::sync::mpsc::Sender<DownloadProgress>>,
+) -> Result<(), String> {
+    let prepared = prepare_version(version, downloader, progress_tx)?;
+    let cmd = build_launch_command(
+        version,
+        &prepared.java_exe,
+        &prepared.client_jar,
+        &prepared.natives_dir,
+        options,
+    )?;
+    spawn_game(cmd)?;
     Ok(())
 }
 
@@ -357,10 +383,15 @@ fn build_launch_command(
 
     let mut args = vec![java_exe.to_string_lossy().into_owned()];
 
-    let max_ram = options.ram_mb.to_string();
-    let min_ram = (options.ram_mb / 2).max(512).to_string();
-    args.push(format!("-Xmx{max_ram}M"));
-    args.push(format!("-Xms{min_ram}M"));
+    args.push(format!("-Xms{}M", options.ram_min_mb));
+    args.push(format!("-Xmx{}M", options.ram_max_mb));
+
+    for arg in &options.jvm_args {
+        if arg.starts_with("-Xms") || arg.starts_with("-Xmx") {
+            continue;
+        }
+        args.push(arg.clone());
+    }
 
     if let Some(arg_block) = &version.arguments {
         for jvm_arg in resolve_argument_values(&arg_block.jvm) {
@@ -415,4 +446,8 @@ fn spawn_game(mut cmd_parts: Vec<String>) -> Result<(), String> {
         .map_err(|e| format!("No se pudo lanzar Minecraft: {e}"))?;
 
     Ok(())
+}
+
+pub fn parse_jvm_args(jvm_args: &str) -> Vec<String> {
+    jvm_args.split_whitespace().map(str::to_string).collect()
 }

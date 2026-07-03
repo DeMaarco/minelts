@@ -14,13 +14,19 @@
     <div class="workbench">
       <nav class="activity-bar" aria-label="Activity">
         <div class="activity-item active" title="Launcher">
-          <img src="icon.png" alt="minelts" class="activity-logo" />
+          <img src="icon.png" alt="minelts" class="activity-logo" width="24" height="24" />
         </div>
         <div class="activity-spacer"></div>
+        <button id="btn-open-logs" type="button" class="activity-item activity-btn" title="Open logs (Ctrl+L)">
+          <span class="icon-slot" data-icon="fileText"></span>
+        </button>
+        <button id="btn-open-crashes" type="button" class="activity-item activity-btn" title="Open crash-reports (Ctrl+Shift+C)">
+          <span class="icon-slot" data-icon="alert"></span>
+        </button>
         <button id="btn-open-root" type="button" class="activity-item activity-btn" title="Open .minecraft">
           <span class="icon-slot" data-icon="folderOpen"></span>
         </button>
-        <button id="btn-refresh" type="button" class="activity-item activity-btn" title="Refresh">
+        <button id="btn-refresh" type="button" class="activity-item activity-btn" title="Refresh (Ctrl+R)">
           <span class="icon-slot" data-icon="refresh"></span>
         </button>
       </nav>
@@ -32,8 +38,28 @@
         </div>
 
         <div class="search-wrap">
-          <span class="search-icon icon-slot" data-icon="search"></span>
-          <input id="version-filter" type="text" placeholder="Search versions" spellcheck="false" />
+          <div class="search-field">
+            <span class="search-icon icon-slot" data-icon="search"></span>
+            <input id="version-filter" type="text" placeholder="Search versions" spellcheck="false" />
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label class="checkbox-hc checkbox-compact">
+            <input id="filter-releases" type="checkbox" checked />
+            <span class="checkbox-box"></span>
+            <span>Releases</span>
+          </label>
+          <label class="checkbox-hc checkbox-compact">
+            <input id="filter-snapshots" type="checkbox" />
+            <span class="checkbox-box"></span>
+            <span>Snapshots</span>
+          </label>
+          <label class="checkbox-hc checkbox-compact">
+            <input id="filter-old" type="checkbox" />
+            <span class="checkbox-box"></span>
+            <span>Old versions</span>
+          </label>
         </div>
 
         <div class="tree-section">
@@ -61,7 +87,6 @@
       <div class="main-panel">
         <div class="editor-tabs">
           <div class="editor-tab active">
-            <img src="icon.png" alt="" class="tab-logo" />
             <span>Launch</span>
           </div>
         </div>
@@ -69,11 +94,8 @@
         <div class="composer-area">
           <div class="composer-card">
             <div class="composer-header">
-              <img src="icon.png" alt="" class="composer-logo" />
-              <div>
-                <h1 class="composer-title">Launch Minecraft</h1>
-                <p class="composer-sub">Offline mode · vanilla</p>
-              </div>
+              <h1 class="composer-title">Launch Minecraft</h1>
+              <p class="composer-sub">Offline mode · vanilla</p>
             </div>
 
             <div class="composer-field">
@@ -81,19 +103,26 @@
               <input id="username" type="text" maxlength="16" placeholder="Steve" autocomplete="off" class="input-composer" />
             </div>
 
-            <div class="composer-row">
-              <div class="composer-field">
-                <label class="label" for="ram-mb">Memory</label>
-                <div class="input-group">
-                  <input id="ram-mb" type="number" min="512" max="16384" step="64" />
-                  <span class="input-addon">MB</span>
+            <div class="composer-row ram-sliders">
+              <div class="composer-field ram-slider-field">
+                <div class="slider-header">
+                  <label class="label" for="ram-min-slider">Min RAM</label>
+                  <span id="ram-min-value" class="slider-value">1024 MB</span>
                 </div>
+                <input id="ram-min-slider" type="range" min="512" max="16384" step="64" value="1024" />
               </div>
-              <label class="checkbox-hc">
-                <input id="show-snapshots" type="checkbox" />
-                <span class="checkbox-box"></span>
-                <span>Snapshots</span>
-              </label>
+              <div class="composer-field ram-slider-field">
+                <div class="slider-header">
+                  <label class="label" for="ram-max-slider">Max RAM</label>
+                  <span id="ram-max-value" class="slider-value">2048 MB</span>
+                </div>
+                <input id="ram-max-slider" type="range" min="512" max="16384" step="64" value="2048" />
+              </div>
+            </div>
+
+            <div class="composer-field">
+              <label class="label" for="jvm-args">JVM arguments</label>
+              <textarea id="jvm-args" class="textarea-mono" rows="2" placeholder="-XX:+UseG1GC" spellcheck="false"></textarea>
             </div>
 
             <div class="composer-field">
@@ -104,10 +133,16 @@
               </div>
             </div>
 
-            <button id="btn-play" type="button" class="btn-primary" disabled>
-              <span class="icon-slot" data-icon="play"></span>
-              Launch
-            </button>
+            <div class="btn-row">
+              <button id="btn-install" type="button" class="btn-secondary" disabled>
+                <span class="icon-slot" data-icon="download"></span>
+                Install
+              </button>
+              <button id="btn-play" type="button" class="btn-primary" disabled>
+                <span class="icon-slot" data-icon="play"></span>
+                Launch
+              </button>
+            </div>
           </div>
         </div>
 

@@ -13,9 +13,11 @@
         "title": "minelts",
         "width": 900,
         "height": 600,
-        "minWidth": 720,
-        "minHeight": 480,
-        "resizable": true,
+        "minWidth": 900,
+        "minHeight": 600,
+        "maxWidth": 900,
+        "maxHeight": 600,
+        "resizable": false,
         "theme": "Dark"
       }
     ],
