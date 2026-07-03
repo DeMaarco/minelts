@@ -8,6 +8,7 @@ mod installed;
 mod java;
 mod launch;
 mod mojang;
+mod system_ram;
 
 fn main() {
     tauri::Builder::default()

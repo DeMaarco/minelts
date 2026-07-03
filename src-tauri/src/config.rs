@@ -2,6 +2,12 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
+pub fn app_dir() -> PathBuf {
+    std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|d| d.to_path_buf()))
+        .unwrap_or_else(|| PathBuf::from("."))
+}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VersionFilterPrefs {
     pub show_releases: bool,
@@ -114,19 +120,15 @@ fn migrate_from_legacy(legacy: LegacyConfig) -> Config {
 }
 
 pub fn config_dir() -> PathBuf {
-    dirs::data_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join("minelts")
+    app_dir()
 }
 
 pub fn config_path() -> PathBuf {
-    config_dir().join("config.json")
+    app_dir().join("config.json")
 }
 
 pub fn minecraft_dir() -> PathBuf {
-    dirs::data_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(".minecraft")
+    app_dir().join(".minecraft")
 }
 
 pub fn load() -> Config {
@@ -155,6 +157,6 @@ pub fn save(config: &Config) -> std::io::Result<()> {
         .map_err(std::io::Error::other)?;
     let dir = config_dir();
     fs::create_dir_all(&dir)?;
-    let json = serde_json::to_string_pretty(config).map_err(std::io::Error::other)?;
+    let json = serde_json::to_string(config).map_err(std::io::Error::other)?;
     fs::write(config_path(), json)
 }

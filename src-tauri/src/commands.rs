@@ -93,15 +93,9 @@ pub fn get_minecraft_dir() -> String {
 
 #[tauri::command]
 pub fn get_system_ram_mb() -> SystemRamInfo {
-    const MIN_MB: u32 = 512;
-    const MAX_MB: u32 = 16384;
-
-    let mut system = sysinfo::System::new();
-    system.refresh_memory();
-    let total_mb = (system.total_memory() / 1024 / 1024) as u32;
-    let total_mb = total_mb.clamp(MIN_MB, MAX_MB);
-
-    SystemRamInfo { total_mb }
+    SystemRamInfo {
+        total_mb: crate::system_ram::total_ram_mb(),
+    }
 }
 
 #[tauri::command]
