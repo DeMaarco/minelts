@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>minelts</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <div class="workbench">
+      <nav class="activity-bar" aria-label="Activity">
+        <div class="activity-item active" title="Launcher">
+          <img src="icon.png" alt="minelts" class="activity-logo" />
+        </div>
+        <div class="activity-spacer"></div>
+        <button id="btn-open-root" type="button" class="activity-item activity-btn" title="Open .minecraft">
+          <span class="icon-slot" data-icon="folderOpen"></span>
+        </button>
+        <button id="btn-refresh" type="button" class="activity-item activity-btn" title="Refresh">
+          <span class="icon-slot" data-icon="refresh"></span>
+        </button>
+      </nav>
+
+      <aside class="side-panel">
+        <div class="sidebar-titlebar">
+          <span class="sidebar-title">VERSIONS</span>
+          <span id="installed-count" class="sidebar-badge">0</span>
+        </div>
+
+        <div class="search-wrap">
+          <span class="search-icon icon-slot" data-icon="search"></span>
+          <input id="version-filter" type="text" placeholder="Search versions" spellcheck="false" />
+        </div>
+
+        <div class="tree-section">
+          <button type="button" class="tree-header" id="toggle-installed">
+            <span class="icon-slot chevron open" data-icon="chevronRight"></span>
+            <span>INSTALLED</span>
+          </button>
+          <ul id="installed-list" class="tree-list"></ul>
+        </div>
+
+        <div class="tree-section tree-grow">
+          <button type="button" class="tree-header" id="toggle-available">
+            <span class="icon-slot chevron open" data-icon="chevronRight"></span>
+            <span>AVAILABLE</span>
+          </button>
+          <ul id="version-list" class="tree-list tree-scroll"></ul>
+        </div>
+
+        <button id="btn-open-versions" type="button" class="sidebar-footer-btn">
+          <span class="icon-slot" data-icon="folder"></span>
+          Open /versions
+        </button>
+      </aside>
+
+      <div class="main-panel">
+        <div class="editor-tabs">
+          <div class="editor-tab active">
+            <img src="icon.png" alt="" class="tab-logo" />
+            <span>Launch</span>
+          </div>
+        </div>
+
+        <div class="composer-area">
+          <div class="composer-card">
+            <div class="composer-header">
+              <img src="icon.png" alt="" class="composer-logo" />
+              <div>
+                <h1 class="composer-title">Launch Minecraft</h1>
+                <p class="composer-sub">Offline mode · vanilla</p>
+              </div>
+            </div>
+
+            <div class="composer-field">
+              <label class="label" for="username">Username</label>
+              <input id="username" type="text" maxlength="16" placeholder="Steve" autocomplete="off" class="input-composer" />
+            </div>
+
+            <div class="composer-row">
+              <div class="composer-field">
+                <label class="label" for="ram-mb">Memory</label>
+                <div class="input-group">
+                  <input id="ram-mb" type="number" min="512" max="16384" step="64" />
+                  <span class="input-addon">MB</span>
+                </div>
+              </div>
+              <label class="checkbox-hc">
+                <input id="show-snapshots" type="checkbox" />
+                <span class="checkbox-box"></span>
+                <span>Snapshots</span>
+              </label>
+            </div>
+
+            <div class="composer-field">
+              <label class="label">Selected version</label>
+              <div class="version-chip">
+                <span class="icon-slot" data-icon="box"></span>
+                <code id="selected-version">—</code>
+              </div>
+            </div>
+
+            <button id="btn-play" type="button" class="btn-primary" disabled>
+              <span class="icon-slot" data-icon="play"></span>
+              Launch
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-bottom">
+          <div class="panel-tabs">
+            <button type="button" class="panel-tab active">
+              <span class="icon-slot" data-icon="terminal"></span>
+              Output
+            </button>
+          </div>
+          <div class="panel-body">
+            <div id="output-log" class="terminal-log">
+              <div class="log-line dim">minelts ready</div>
+            </div>
+            <div id="progress-wrap" class="progress-area hidden">
+              <div class="progress-bar"><div id="progress-bar" class="progress-fill"></div></div>
+              <span id="progress-text" class="progress-label"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="statusbar">
+      <span class="statusbar-item" id="statusbar-msg">Ready</span>
+      <span class="statusbar-item statusbar-path" id="data-path"></span>
+    </footer>
+  </div>
+
+  <select id="version-select" class="sr-only" aria-hidden="true" tabindex="-1"></select>
+
+  <script src="icons.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
